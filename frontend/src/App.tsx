@@ -67,6 +67,7 @@ import {
   Config,
   IGitInfo,
   GitInfo,
+  Slider,
 } from "src/autogen/proto"
 import { without, concat } from "lodash"
 
@@ -305,28 +306,46 @@ export class App extends PureComponent<Props, State> {
       this.props.s4aCommunication.currentState.widgetStates
     ) {
       console.log(
-        "Update widget state",
+        "Update widget states",
         this.widgetMgr.createWidgetStatesMsg(),
         this.props.s4aCommunication.currentState.widgetStates,
         this.state.elements
       )
       // console.log("Update widget states", this.widgetMgr.createWidgetStatesMsg(), prevProps.s4aCommunication.currentState.widgetStates, this.props.s4aCommunication.currentState.widgetStates)
-      // this.sendRerunBackMsg(
-      //   this.props.s4aCommunication.currentState.widgetStates
-      // )
+      this.sendRerunBackMsg(
+        this.props.s4aCommunication.currentState.widgetStates
+      )
 
       this.props.s4aCommunication.currentState.widgetStates.widgets
         // .filter(
         //   widget => widget.id.indexOf("b3acf4ed31fee48707354967ef15863d") > -1
         // )
         .forEach(widget => {
-          console.log("Set widget value", widget, widget.doubleArrayValue.data)
-          idToValues[widget.id] = widget.doubleArrayValue.data
-          this.widgetMgr.setDoubleArrayValue(
-            { id: widget.id, formId: "" },
-            widget.doubleArrayValue.data,
-            { fromUi: true }
+          const isSlider = widget instanceof Slider
+          console.log(
+            "Set widget value",
+            widget,
+            widget.doubleArrayValue?.data,
+            isSlider
           )
+          if ("doubleArrayValue" in widget) {
+            idToValues[widget.id] = widget.doubleArrayValue.data
+            // this.widgetMgr.setDoubleArrayValue(
+            //   { id: widget.id, formId: "" },
+            //   widget.doubleArrayValue.data,
+            //   { fromUi: true }
+            // )
+          } else if ("stringValue" in widget) {
+            idToValues[widget.id] = widget.stringValue
+          } else if ("intValue" in widget) {
+            idToValues[widget.id] = widget.intValue
+          } else if ("doubleValue" in widget) {
+            idToValues[widget.id] = widget.doubleValue
+          } else if ("intArrayValue" in widget) {
+            idToValues[widget.id] = widget.intArrayValue.data
+          } else if ("boolValue" in widget) {
+            idToValues[widget.id] = widget.boolValue
+          }
         })
       // this.state.elements.applyDelta("", )
       // this.setState((prevState) => {
@@ -343,8 +362,8 @@ export class App extends PureComponent<Props, State> {
       //   return { elements: newElements }
       // })
       // const appRoot = this.state.elements
-      // // const children = appRoot.main.children
-      // // const newMain = appRoot.main.getElements()
+      // // // const children = appRoot.main.children
+      // // // const newMain = appRoot.main.getElements()
       // const iterateThroughMain = (blockNode: BlockNode) => {
       //   blockNode.children.forEach(child => {
       //     if (child instanceof BlockNode) {
@@ -365,16 +384,16 @@ export class App extends PureComponent<Props, State> {
       //   })
       // }
       // iterateThroughMain(appRoot.main)
-      // // const iterateThroughElements = (nodes: Set<Element>) => {
-      // //   nodes.forEach(node => {
-      // //     Object.entries(node).forEach(([key, value]) => {
-      // //       if (value instanceof Object && "id" in value && "value" in value) {
-      // //         value.value = idToValues[value["id"]]
-      // //       }
-      // //     })
-      // //   })
-      // // }
-      // // iterateThroughElements(newMain)
+      // // // const iterateThroughElements = (nodes: Set<Element>) => {
+      // // //   nodes.forEach(node => {
+      // // //     Object.entries(node).forEach(([key, value]) => {
+      // // //       if (value instanceof Object && "id" in value && "value" in value) {
+      // // //         value.value = idToValues[value["id"]]
+      // // //       }
+      // // //     })
+      // // //   })
+      // // // }
+      // // // iterateThroughElements(newMain)
       // const newAppRoot = new AppRoot(
       //   new BlockNode([appRoot.main, appRoot.sidebar])
       // )

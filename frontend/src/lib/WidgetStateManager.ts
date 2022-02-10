@@ -506,6 +506,10 @@ export class WidgetStateManager {
     })
   }
 
+  public createWidgetStatesMsg(): WidgetStates {
+    return this.widgetStates.createWidgetStatesMsg()
+  }
+
   public sendUpdateWidgetsMessage(): void {
     this.props.sendRerunBackMsg(this.widgetStates.createWidgetStatesMsg())
   }

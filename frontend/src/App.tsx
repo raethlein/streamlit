@@ -54,6 +54,7 @@ import {
   BackMsg,
   CustomThemeConfig,
   Delta,
+  Element,
   ForwardMsg,
   ForwardMsgMetadata,
   Initialize,
@@ -74,7 +75,7 @@ import { SessionInfo } from "src/lib/SessionInfo"
 import { MetricsManager } from "src/lib/MetricsManager"
 import { FileUploadClient } from "src/lib/FileUploadClient"
 import { logError, logMessage } from "src/lib/log"
-import { AppRoot } from "src/lib/AppNode"
+import { AppNode, AppRoot, BlockNode, ElementNode } from "src/lib/AppNode"
 
 import { UserSettings } from "src/components/core/StreamlitDialog/UserSettings"
 import { ComponentRegistry } from "src/components/widgets/CustomComponent"
@@ -103,6 +104,7 @@ import withScreencast, {
 
 // Used to import fonts + responsive reboot items
 import "src/assets/css/theme.scss"
+import { instanceOf } from "prop-types"
 
 export interface Props {
   screenCast: ScreenCastHOC
@@ -145,6 +147,8 @@ declare global {
     streamlitDebug: any
   }
 }
+
+const idToValues: Record<string, any> = {}
 
 export class App extends PureComponent<Props, State> {
   private readonly sessionEventDispatcher: SessionEventDispatcher
@@ -286,6 +290,7 @@ export class App extends PureComponent<Props, State> {
     })
 
     MetricsManager.current.enqueue("viewReport")
+    console.log("MOUNTED", this.widgetMgr.createWidgetStatesMsg())
   }
 
   componentDidUpdate(prevProps: Readonly<Props>): void {
@@ -294,6 +299,89 @@ export class App extends PureComponent<Props, State> {
       this.props.s4aCommunication.currentState.queryParams
     ) {
       this.sendRerunBackMsg()
+    }
+    if (
+      prevProps.s4aCommunication.currentState.widgetStates !==
+      this.props.s4aCommunication.currentState.widgetStates
+    ) {
+      console.log(
+        "Update widget state",
+        this.widgetMgr.createWidgetStatesMsg(),
+        this.props.s4aCommunication.currentState.widgetStates,
+        this.state.elements
+      )
+      // console.log("Update widget states", this.widgetMgr.createWidgetStatesMsg(), prevProps.s4aCommunication.currentState.widgetStates, this.props.s4aCommunication.currentState.widgetStates)
+      // this.sendRerunBackMsg(
+      //   this.props.s4aCommunication.currentState.widgetStates
+      // )
+
+      this.props.s4aCommunication.currentState.widgetStates.widgets
+        // .filter(
+        //   widget => widget.id.indexOf("b3acf4ed31fee48707354967ef15863d") > -1
+        // )
+        .forEach(widget => {
+          console.log("Set widget value", widget, widget.doubleArrayValue.data)
+          idToValues[widget.id] = widget.doubleArrayValue.data
+          this.widgetMgr.setDoubleArrayValue(
+            { id: widget.id, formId: "" },
+            widget.doubleArrayValue.data,
+            { fromUi: true }
+          )
+        })
+      // this.state.elements.applyDelta("", )
+      // this.setState((prevState) => {
+      //   const appRoot = prevState.elements
+      //   appRoot.main.children.map(child => {
+      //     child.getElements().forEach(e => {
+      //       e.
+      //     })
+      //   })
+      //   appRoot.getElements().forEach(el => {
+      //     el.slider
+      //     const k = Element.fromObject(el.toJSON())
+      //   })
+      //   return { elements: newElements }
+      // })
+      // const appRoot = this.state.elements
+      // // const children = appRoot.main.children
+      // // const newMain = appRoot.main.getElements()
+      // const iterateThroughMain = (blockNode: BlockNode) => {
+      //   blockNode.children.forEach(child => {
+      //     if (child instanceof BlockNode) {
+      //       iterateThroughMain(child)
+      //     } else if (child instanceof ElementNode) {
+      //       const element = child.element
+      //       Object.entries(element).forEach(([key, value]) => {
+      //         console.log("Instance of element", value)
+      //         if (
+      //           value instanceof Object &&
+      //           "id" in value &&
+      //           "value" in value
+      //         ) {
+      //           value.value = idToValues[value["id"]]
+      //         }
+      //       })
+      //     }
+      //   })
+      // }
+      // iterateThroughMain(appRoot.main)
+      // // const iterateThroughElements = (nodes: Set<Element>) => {
+      // //   nodes.forEach(node => {
+      // //     Object.entries(node).forEach(([key, value]) => {
+      // //       if (value instanceof Object && "id" in value && "value" in value) {
+      // //         value.value = idToValues[value["id"]]
+      // //       }
+      // //     })
+      // //   })
+      // // }
+      // // iterateThroughElements(newMain)
+      // const newAppRoot = new AppRoot(
+      //   new BlockNode([appRoot.main, appRoot.sidebar])
+      // )
+      // console.log("New AppRoot:", newAppRoot)
+      // this.setState({
+      //   elements: newAppRoot,
+      // })
     }
     if (this.props.s4aCommunication.currentState.forcedModalClose) {
       this.closeDialog()
@@ -641,6 +729,16 @@ export class App extends PureComponent<Props, State> {
 
     this.props.s4aCommunication.connect()
     this.handleSessionStateChanged(initialize.sessionState)
+    // console.log(
+    //   "SEND MESSAGE",
+    //   this.widgetMgr.createWidgetStatesMsg()?.toJSON()
+    // )
+    // const state: string =
+    //   JSON.stringify(this.widgetMgr.createWidgetStatesMsg()?.toJSON()) || ""
+    // this.props.s4aCommunication.sendMessage({
+    //   type: "WIDGET_STATE",
+    //   state: state,
+    // })
   }
 
   /**
@@ -718,6 +816,10 @@ export class App extends PureComponent<Props, State> {
       // Clear any stale elements left over from the previous run.
       // (We don't do this if our script had a compilation error and didn't
       // finish successfully.)
+      console.log(
+        "in handlescriptfinished",
+        this.pendingElementsBuffer.clearStaleNodes(this.state.scriptRunId)
+      )
       this.setState(
         ({ scriptRunId }) => ({
           // Apply any pending elements that haven't been applied.
@@ -811,6 +913,32 @@ export class App extends PureComponent<Props, State> {
     deltaMsg: Delta,
     metadataMsg: ForwardMsgMetadata
   ): void => {
+    // modify delta from postMessageValue
+    const updateDeltaElement = (delta: Delta) => {
+      if (delta.type !== "newElement") {
+        return
+      }
+      const element = delta.newElement as Element
+      if (!element) return
+      Object.entries(element).forEach(([key, value]) => {
+        console.log("Instance of element", value)
+        if (value instanceof Object && "id" in value && "value" in value) {
+          if (value.id in idToValues) {
+            value.value = idToValues[value.id]
+            value.setValue = true
+            delete idToValues[value.id]
+          }
+        }
+      })
+    }
+    updateDeltaElement(deltaMsg)
+    console.log(
+      "Got delta message",
+      deltaMsg,
+      metadataMsg,
+      this.pendingElementsBuffer
+    )
+
     this.pendingElementsBuffer = this.pendingElementsBuffer.applyDelta(
       this.state.scriptRunId,
       deltaMsg,
@@ -880,7 +1008,6 @@ export class App extends PureComponent<Props, State> {
       // being processed until the script has completed executing.
       this.saveSettings({ ...this.state.userSettings, runOnSave: true })
     }
-
     this.widgetMgr.sendUpdateWidgetsMessage()
   }
 
@@ -914,6 +1041,13 @@ export class App extends PureComponent<Props, State> {
         rerunScript: { queryString, widgetStates },
       })
     )
+    // console.log("SEND MESSAGE", widgetStates?.toJSON())
+    // const state: string =
+    //   JSON.stringify(this.widgetMgr.createWidgetStatesMsg()?.toJSON()) || ""
+    // this.props.s4aCommunication.sendMessage({
+    //   type: "WIDGET_STATE",
+    //   state: state,
+    // })
   }
 
   /** Requests that the server stop running the script */
@@ -1072,7 +1206,7 @@ export class App extends PureComponent<Props, State> {
       gitInfo,
       hideTopBar,
     } = this.state
-
+    console.log("RENDER!", this.widgetMgr.createWidgetStatesMsg(), elements)
     const outerDivClass = classNames("stApp", {
       "streamlit-embedded": isEmbeddedInIFrame(),
       "streamlit-wide": userSettings.wideMode,

@@ -29,6 +29,7 @@ import {
   StreamlitShareMetadata,
   VersionedMessage,
 } from "./types"
+import { WidgetStates } from "src/autogen/proto"
 
 interface State {
   forcedModalClose: boolean
@@ -38,6 +39,7 @@ interface State {
   sidebarChevronDownshift: number
   streamlitShareMetadata: StreamlitShareMetadata
   toolbarItems: IToolbarItem[]
+  widgetStates: WidgetStates
 }
 
 export interface S4ACommunicationHOC {
@@ -72,12 +74,13 @@ function withS4ACommunication(
     const [isOwner, setIsOwner] = useState(false)
     const [toolbarItems, setToolbarItems] = useState<IToolbarItem[]>([])
     const [sidebarChevronDownshift, setSidebarChevronDownshift] = useState(0)
+    const [widgetStates, setWidgetStates] = useState<WidgetStates>()
 
     useEffect(() => {
       function receiveMessage(event: MessageEvent): void {
         let origin: string
         const message: VersionedMessage<IHostToGuestMessage> | any = event.data
-
+        console.log("received message", event, message)
         try {
           const url = new URL(event.origin)
 
@@ -125,6 +128,12 @@ function withS4ACommunication(
         if (message.type === "UPDATE_HASH") {
           window.location.hash = message.hash
         }
+
+        if (message.type === "WIDGET_STATE") {
+          // sendS4AMessage({ type: "WIDGET_STATE", state: "" })
+          console.log("Received message WIDGET_STATE", message.state)
+          setWidgetStates(message.state)
+        }
       }
 
       window.addEventListener("message", receiveMessage)
@@ -146,6 +155,7 @@ function withS4ACommunication(
               sidebarChevronDownshift,
               streamlitShareMetadata,
               toolbarItems,
+              widgetStates,
             },
             connect: () => {
               sendS4AMessage({

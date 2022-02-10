@@ -40,4 +40,5 @@ export const CLOUD_COMM_WHITELIST = [
   "share-staging.streamlit.io",
   "*.streamlitapp.com",
   "*.streamlit.run",
+  "localhost",
 ]

@@ -105,6 +105,7 @@ class Slider extends React.PureComponent<Props, State> {
 
   private maybeUpdateFromProtobuf(): void {
     const { setValue } = this.props.element
+    console.log("Slider: update", setValue, this.props.element)
     if (setValue) {
       this.updateFromProtobuf()
     }

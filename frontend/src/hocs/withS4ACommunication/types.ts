@@ -112,6 +112,10 @@ export type IGuestToHostMessage =
       type: "UPDATE_HASH"
       hash: string
     }
+  | {
+      type: "WIDGET_STATE"
+      state: string
+    }
 
 export type VersionedMessage<Message> = {
   stCommVersion: number

@@ -15,6 +15,7 @@
  * limitations under the License.
  */
 
+import { WidgetStates } from "src/autogen/proto"
 import { ExportedTheme } from "src/theme"
 
 export type StreamlitShareMetadata = {
@@ -78,6 +79,10 @@ export type IHostToGuestMessage = {
       type: "UPDATE_HASH"
       hash: string
     }
+  | {
+      type: "WIDGET_STATE"
+      states: string
+    }
 )
 
 export type IGuestToHostMessage =
@@ -113,8 +118,8 @@ export type IGuestToHostMessage =
       hash: string
     }
   | {
-      type: "WIDGET_STATE"
-      state: string
+      type: "APP_WIDGET_STATE"
+      states: string
     }
 
 export type VersionedMessage<Message> = {

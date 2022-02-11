@@ -76,7 +76,7 @@ import { SessionInfo } from "src/lib/SessionInfo"
 import { MetricsManager } from "src/lib/MetricsManager"
 import { FileUploadClient } from "src/lib/FileUploadClient"
 import { logError, logMessage } from "src/lib/log"
-import { AppNode, AppRoot, BlockNode, ElementNode } from "src/lib/AppNode"
+import { AppRoot } from "src/lib/AppNode"
 
 import { UserSettings } from "src/components/core/StreamlitDialog/UserSettings"
 import { ComponentRegistry } from "src/components/widgets/CustomComponent"
@@ -105,7 +105,6 @@ import withScreencast, {
 
 // Used to import fonts + responsive reboot items
 import "src/assets/css/theme.scss"
-import { instanceOf } from "prop-types"
 
 export interface Props {
   screenCast: ScreenCastHOC
@@ -312,41 +311,61 @@ export class App extends PureComponent<Props, State> {
         this.state.elements
       )
       // console.log("Update widget states", this.widgetMgr.createWidgetStatesMsg(), prevProps.s4aCommunication.currentState.widgetStates, this.props.s4aCommunication.currentState.widgetStates)
-      this.sendRerunBackMsg(
-        this.props.s4aCommunication.currentState.widgetStates
-      )
+      // this.sendRerunBackMsg(
+      //   this.props.s4aCommunication.currentState.widgetStates
+      // )
 
-      this.props.s4aCommunication.currentState.widgetStates.widgets
-        // .filter(
-        //   widget => widget.id.indexOf("b3acf4ed31fee48707354967ef15863d") > -1
-        // )
-        .forEach(widget => {
-          const isSlider = widget instanceof Slider
+      this.props.s4aCommunication.currentState.widgetStates?.widgets?.forEach(
+        widget => {
           console.log(
             "Set widget value",
             widget,
-            widget.doubleArrayValue?.data,
-            isSlider
+            widget.doubleArrayValue?.data
           )
+          const widgetInfo = { id: widget.id, formId: "" }
           if ("doubleArrayValue" in widget) {
             idToValues[widget.id] = widget.doubleArrayValue.data
-            // this.widgetMgr.setDoubleArrayValue(
-            //   { id: widget.id, formId: "" },
-            //   widget.doubleArrayValue.data,
-            //   { fromUi: true }
-            // )
+            this.widgetMgr.setDoubleArrayValue(
+              widgetInfo,
+              widget.doubleArrayValue.data,
+              { fromUi: true }
+            )
           } else if ("stringValue" in widget) {
             idToValues[widget.id] = widget.stringValue
+            this.widgetMgr.setStringValue(widgetInfo, widget.stringValue, {
+              fromUi: true,
+            })
           } else if ("intValue" in widget) {
-            idToValues[widget.id] = widget.intValue
+            const intValue = parseInt(widget.intValue, 10)
+            idToValues[widget.id] = intValue
+            this.widgetMgr.setIntValue(widgetInfo, intValue, {
+              fromUi: true,
+            })
           } else if ("doubleValue" in widget) {
             idToValues[widget.id] = widget.doubleValue
-          } else if ("intArrayValue" in widget) {
+            this.widgetMgr.setDoubleValue(widgetInfo, widget.doubleValue, {
+              fromUi: true,
+            })
+          } else if (
+            "intArrayValue" in widget &&
+            "data" in widget.intArrayValue
+          ) {
             idToValues[widget.id] = widget.intArrayValue.data
+            this.widgetMgr.setIntArrayValue(
+              widgetInfo,
+              widget.intArrayValue.data,
+              {
+                fromUi: true,
+              }
+            )
           } else if ("boolValue" in widget) {
             idToValues[widget.id] = widget.boolValue
+            this.widgetMgr.setBoolValue(widgetInfo, widget.boolValue, {
+              fromUi: true,
+            })
           }
-        })
+        }
+      )
       // this.state.elements.applyDelta("", )
       // this.setState((prevState) => {
       //   const appRoot = prevState.elements
@@ -1226,6 +1245,15 @@ export class App extends PureComponent<Props, State> {
       hideTopBar,
     } = this.state
     console.log("RENDER!", this.widgetMgr.createWidgetStatesMsg(), elements)
+    if (this.widgetMgr.createWidgetStatesMsg()) {
+      this.props.s4aCommunication.sendMessage({
+        type: "APP_WIDGET_STATE",
+        states: JSON.stringify(
+          this.widgetMgr.createWidgetStatesMsg()?.toJSON()
+        ),
+      })
+    }
+
     const outerDivClass = classNames("stApp", {
       "streamlit-embedded": isEmbeddedInIFrame(),
       "streamlit-wide": userSettings.wideMode,

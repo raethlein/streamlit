@@ -21,6 +21,8 @@ import hoistNonReactStatics from "hoist-non-react-statics"
 import { CLOUD_COMM_WHITELIST } from "src/urls"
 import { isValidURL } from "src/lib/UriUtil"
 
+import { WidgetStates } from "src/autogen/proto"
+
 import {
   IGuestToHostMessage,
   IHostToGuestMessage,
@@ -29,7 +31,6 @@ import {
   StreamlitShareMetadata,
   VersionedMessage,
 } from "./types"
-import { WidgetStates } from "src/autogen/proto"
 
 interface State {
   forcedModalClose: boolean
@@ -94,8 +95,15 @@ function withS4ACommunication(
           message.stCommVersion !== S4A_COMM_VERSION ||
           !CLOUD_COMM_WHITELIST.find(el => isValidURL(el, origin))
         ) {
+          console.log(
+            "received message; origin not ok",
+            CLOUD_COMM_WHITELIST,
+            origin
+          )
           return
         }
+
+        console.log("received message; origin ok", origin)
 
         if (message.type === "CLOSE_MODAL") {
           setForcedModalClose(true)
@@ -131,8 +139,8 @@ function withS4ACommunication(
 
         if (message.type === "WIDGET_STATE") {
           // sendS4AMessage({ type: "WIDGET_STATE", state: "" })
-          console.log("Received message WIDGET_STATE", message.state)
-          setWidgetStates(message.state)
+          console.log("Received message WIDGET_STATE", message.states)
+          setWidgetStates(message.states)
         }
       }
 

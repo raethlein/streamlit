@@ -350,14 +350,11 @@ export class App extends PureComponent<Props, State> {
             "intArrayValue" in widget &&
             "data" in widget.intArrayValue
           ) {
-            idToValues[widget.id] = widget.intArrayValue.data
-            this.widgetMgr.setIntArrayValue(
-              widgetInfo,
-              widget.intArrayValue.data,
-              {
-                fromUi: true,
-              }
-            )
+            const intArrayValues = widget.intArrayValue.data.map(Number)
+            idToValues[widget.id] = intArrayValues
+            this.widgetMgr.setIntArrayValue(widgetInfo, intArrayValues, {
+              fromUi: true,
+            })
           } else if ("boolValue" in widget) {
             idToValues[widget.id] = widget.boolValue
             this.widgetMgr.setBoolValue(widgetInfo, widget.boolValue, {
